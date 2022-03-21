@@ -87,27 +87,32 @@ DJB2_INITIAL_HASH  equ 5381
 ;********************************************************
 @hashb_wakkerbot@12:
     mov eax, [esp+4]      ;set the initial hash value
-    sub esp, 8            ;create space on the stack
-    mov [esp+4], edi      ;save the right shift register
-    mov [esp], ebx        ;save the left shift register
+    sub esp, 12            ;create space on the stack
+    mov [esp+8], ebx
+    mov [esp+4], edi
+    mov [esp], esi
+    mov edi, ecx
+    xor esi, esi
 .loop:
+    movsx ecx, byte [esi+edx]
     mov ebx, eax
-    mov edi, eax
-    shr edi, 2
-    xor eax, edi
-    shl ebx, 5
-    xor eax, ebx
     shl ebx, 8
+    add esi, 1
+    xor ebx, eax
+    shl ebx, 5
+    xor ebx, ecx
+    mov ecx, eax
+    shr ecx, 2
+    xor ebx, ecx 
     xor eax, ebx
-    xor al, byte [edx]
-    xor eax, 0x80001801
-    add edx, 1
-    sub ecx, 1
-    jnz .loop
+    xor eax, -2147477503   ;0x80001801
+    cmp esi, edi
+    jl .loop
+    mov ebx, [esp+8]
     mov edi, [esp+4]
-    mov ebx, [esp]
-    add esp, 16
-    jmp [esp-4]
+    mov esi, [esp]
+    add esp, 20 
+    jmp [esp-8]
 
 
 

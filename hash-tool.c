@@ -33,7 +33,7 @@ hash_sdbm_32(int length, char *key, unsigned long hash)
 /* source: https://sourceforge.net/projects/wakkerbot/files/megahal.c/download */
 /* hash can be initialized to zero */
 unsigned long HASH_FASTCALL
-hash_mem_32(long length, char *key, unsigned long hash)
+hash_wakkerbot_32(int length, char *key, unsigned long hash)
 {
     for(int i = 0; i < length; i++)
         hash ^= (hash>>2) ^ (hash<<5) ^ (hash<<13) ^ key[i] ^ 0x80001801;
@@ -59,21 +59,33 @@ fnv1_64(long length, char *key, unsigned long hash)
 
 // hash - can be initialized to zero
 unsigned long HASH_FASTCALL
-hashb_jenkins1(long length, char *key, unsigned long hash)
+hashb_jenkins1_1(long length, char *key, unsigned long hash)
 {
     int i = 0;
     while(i != length) {
         hash += key[i++] + (hash << 10) ^ (hash >> 6);
-        //h += key[i++];
-        //h += h << 10;
-        //h ^= h >> 6;
     }
     hash += (hash << 3) ^ (hash >> 11) + (hash << 15);
-    //h += h << 3;
-    //h ^= h >> 11;
-    //h += h << 15;
     return hash;
 }
+
+
+// hash - can be initialized to zero
+unsigned long HASH_FASTCALL
+hashb_jenkins1_2(long length, char *key, unsigned long hash)
+{
+    int i = 0;
+    while(i != length) {
+        hash += key[i++];
+        hash += hash << 10; //hash = (hash<<10) + hash; hash  * 1025
+        hash ^= hash >> 6;
+    }
+    hash += hash << 3;  // hash = (hash<<3) + hash;  hash * 9 
+    hash ^= hash >> 11;
+    hash += hash << 15; // hash = (hash<<15) + hash; hash * 32769
+    return hash;
+}
+
 
 
 
@@ -118,7 +130,7 @@ int test_hash_value_equality
     unsigned long h1, h2;
 
     int len = 4;
-    char *str = "TEST";
+    char *str = "TESU";
     
     h1 = c_proc(len, str, hash);
     h2 = asm_proc(len, str, hash);
@@ -259,12 +271,19 @@ int main(int argc, char **argv)
     data.mod = 71;
     data.count = 0;
 
+    printf("NUMBER: %u | %u\n", (33 * 32769), (33<<15)+33 );
+
 
     test_hash_value_equality(hash_djb2_32, hashb_djb2, DJB2_INIT);
     test_hash_value_equality(hash_sdbm_32, hashb_sdbm, 0);
+    test_hash_value_equality(hash_wakkerbot_32, hashb_wakkerbot, 0);
+    //test_hash_value_equality(hashb_jenkins1_1, hashb_jenkins1_2, 0);
 
     test_hash_value_reentry_equality(hash_djb2_32, hashb_djb2, DJB2_INIT);
     test_hash_value_reentry_equality(hash_sdbm_32, hashb_sdbm, 0);
+    test_hash_value_reentry_equality(hash_wakkerbot_32, hashb_wakkerbot, 0);
+
+
 
     data.hash = hashb_sdbm;
     //data.hash = hashb_wakkerbot;

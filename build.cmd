@@ -1,6 +1,6 @@
 @echo off
 
-cl  /c /Fahash-tool.asm hash-tool.c
+cl /O2 /c /Fahash-tool.asm hash-tool.c
 
 nasm -fwin32 hash.asm
 
