@@ -174,30 +174,27 @@ jmp [esp]
 @hashb_jenkins_1@12:
     mov eax, [esp+4]     ; set the initial hash value
     sub esp, 8           ; create space on the stack
-    mov [esp+4], ebx     ; save the shift right register
+    mov [esp+4], esi     ; save the shift right register
     mov [esp], edi       ; save the shift left register
+    mov edi, ecx
+    xor esi, esi
 .loop:
-    mov edi, eax         ; copy hash to shift left register
-    mov ebx, eax         ; copy hash to shift right register
-    shl edi, 10
-    add eax, edi
-    shr ebx, 6
-    add eax, ebx
-    add al, byte [edx]
-    add esi, 1
-    sub ecx, 1
-    jnz .loop
-    mov edi, eax
-    mov ebx, eax
-    shl edi, 3
-    add eax, edi
-    shl edi, 12
-    add eax, edi
-    shr ebx, 11
-    xor eax, ebx
-    mov ebx, [esp+4]
+    movsx ecx, byte [esi+edx]
+    add esi, 1           ; i++
+    add ecx, eax         ; hash += key[i]
+    imul eax, ecx, 1025  ; hash += hash << 10
+    mov ecx, eax
+    shr ecx, 6
+    xor eax, ecx         ; hash ^= hash << 6 
+    cmp esi, edi
+    jl  .loop
+    lea ecx, [eax+eax*8] ; hash += hash << 3 (hash *= 9)
+    mov eax, ecx
+    shr eax, 11
+    xor eax, ecx
     mov edi, [esp]
-    add esp, 16
+    imul eax, eax, 32769
+    mov esi,[esp+4]
     jmp [esp-4]
 
 
