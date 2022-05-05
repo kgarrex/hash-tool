@@ -9,6 +9,8 @@ global  @next_pow2@4
 [section .text]
 
 %ifdef COMMENT
+0x000000002            2
+0x000000004            4
 0x000000008            8
 0x000000010           16
 0x000000020           32
@@ -56,9 +58,9 @@ global  @next_pow2@4
     shl    ecx, 1
     test   eax, edx
     cmovnz eax, ecx
-    ;ret    4
-    add    esp, 4
-    jmp    [esp-4]
+    ret
+    ;add    esp, 4
+    ;jmp    [esp-4]
 
 
 @next_pow2_@4:
@@ -75,15 +77,18 @@ global  @next_pow2@4
 
     ;call   _NtAllocateVirtualMemory@24
 
+; Based on the paper 'Fast Efficient Fixed-Sized Memory Pool' by Ben Kenwright
+
 ; allocate memory of an unaligned size
+; ecx - allocation size
 ; esi - base address of pool
 ; eax - base address of allocated memory
 ; ebx - blockSize
 @mem_allocu@4:
     sub    esp, 16
-    mov    [esp], ebp
-    mov    [esp+4], ebx
-    mov    [esp+8], esi
+    mov    [esp],    ebp
+    mov    [esp+4],  ebx
+    mov    [esp+8],  esi
     mov    [esp+12], edi
 
     call   @next_pow2@4    ; align the size on power of 2
@@ -94,7 +99,7 @@ global  @next_pow2@4
     ; if pointers
     ;mov   edx, [edx+eax*4]
 
-    xor    eax, eax
+    xor    eax, eax       ; eax = 0
 
     ; if structs
     ;mov   ecx, sizeof(struct pool)
@@ -137,6 +142,7 @@ global  @next_pow2@4
 
 
 ; allocate memory of an aligned size
+; void *mem_alloca(int size);
 @mem_alloca@4:
     lzcnt  ecx, ecx
     ;lea    edx, array
@@ -144,5 +150,16 @@ global  @next_pow2@4
     ;mov    eax, [edx+ecx+sizeof()]
 
 
+; free memory  of unaligned size
 @mem_freeu@8:
+    call   @next_pow2@4
+    lzcnt  ecx, eax
+    mov    [ebp+ecx*4]
+
+
+; free memory of aligned size
+; void mem_freea(int size, void *ptr);
+@mem_freea@8:
+    lzcnt  ecx, ecx
+    mov    [ebp+ecx*4]
 
