@@ -77,6 +77,17 @@ global  @next_pow2@4
 
     ;call   _NtAllocateVirtualMemory@24
 
+
+MEM_POOL_STRUCT_SIZE   equ 32
+
+POOL_RESERVED         equ POOL_NUM_BLOCKS - 8
+POOL_NUM_BLOCKS       equ POOL_BLOCK_SIZE - 4
+POOL_BLOCK_SIZE       equ POOL_NUM_FREE_BLOCKS - 4
+POOL_NUM_FREE_BLOCKS  equ POOL_NUM_INIT - 4
+POOL_NUM_INIT         equ POOL_MEM_START - 4
+POOL_MEM_START        equ POOL_POOL_NEXT  - 4
+POOL_NEXT             equ POOL_STRUCT_SIZE - 4
+
 ; Based on the paper 'Fast Efficient Fixed-Sized Memory Pool' by Ben Kenwright
 
 ; allocate memory of an unaligned size
@@ -84,12 +95,16 @@ global  @next_pow2@4
 ; esi - base address of pool
 ; eax - base address of allocated memory
 ; ebx - blockSize
+; reg - numInit
+; reg - 
 @mem_allocu@4:
     sub    esp, 16
     mov    [esp],    ebp
     mov    [esp+4],  ebx
     mov    [esp+8],  esi
     mov    [esp+12], edi
+
+    mov    esi, [ecx+POOL_MEM_BASE
 
     call   @next_pow2@4    ; align the size on power of 2
     lzcnt  ecx, eax
