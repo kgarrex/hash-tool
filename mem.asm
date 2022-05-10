@@ -78,23 +78,25 @@ global  @next_pow2@4
     ;call   _NtAllocateVirtualMemory@24
 
 
-MEM_POOL_STRUCT_SIZE   equ 32
+POOL_STRUCT_SIZE   equ 32
+pool_numBlocks     equ pool_blockSize - 4
+pool_blockSize     equ pool_numFreeBlocks - 4
+pool_numFreeBlocks equ pool_numInit - 4
+pool_numInit       equ pool_memBase - 4
+pool_memBase       equ pool_next - 4
+pool_next          equ pool_padding - 4
+pool_padding       equ POOL_STRUCT_SIZE - 8
 
-POOL_RESERVED         equ POOL_NUM_BLOCKS - 8
-POOL_NUM_BLOCKS       equ POOL_BLOCK_SIZE - 4
-POOL_BLOCK_SIZE       equ POOL_NUM_FREE_BLOCKS - 4
-POOL_NUM_FREE_BLOCKS  equ POOL_NUM_INIT - 4
-POOL_NUM_INIT         equ POOL_MEM_START - 4
-POOL_MEM_START        equ POOL_POOL_NEXT  - 4
-POOL_NEXT             equ POOL_STRUCT_SIZE - 4
 
 ; Based on the paper 'Fast Efficient Fixed-Sized Memory Pool' by Ben Kenwright
 
 ; allocate memory of an unaligned size
-; ecx - allocation size
-; esi - base address of pool
 ; eax - base address of allocated memory
-; ebx - blockSize
+; ebx - blockSize / nextBlock
+; ecx - allocation size / index multiplier
+; edx - numFreeBlocks
+; esi - base address of pool
+; edi - index
 ; reg - numInit
 ; reg - 
 @mem_allocu@4:
@@ -104,7 +106,7 @@ POOL_NEXT             equ POOL_STRUCT_SIZE - 4
     mov    [esp+8],  esi
     mov    [esp+12], edi
 
-    mov    esi, [ecx+POOL_MEM_BASE
+    mov    esi, [ecx+pool_memBase]
 
     call   @next_pow2@4    ; align the size on power of 2
     lzcnt  ecx, eax
@@ -121,16 +123,16 @@ POOL_NEXT             equ POOL_STRUCT_SIZE - 4
     ;imul  eax, ecx
     ;lea   edx, [edx+eax]
 
-    ;mov   reg2, [base+blockSize]      ; reg2 = blockSize
-    ;mov   reg3, [base+numInit]        ; reg3 = numInit
-    ;mov   reg5, [base+numBlocks]      ; reg5 = numBlocks
+    mov   ebx, [esi+pool_blockSize]      ; reg2 = blockSize
+    ;mov   reg3, [esi+pool_numInit]        ; reg3 = numInit
+    ;mov   reg5, [esi+pool_numBlocks]      ; reg5 = numBlocks
 
     ;mov   regIndex, dword [next]
     ;xor   next, next
 ; AddrFromIndex
-    ;tzcnt ecx,   blockSize
-    ;shl   regIndex, cl 
-    ;lea   reg, [esi+regIndex]       ; base + (index * blocksize)
+    tzcnt ecx, ebx
+    shl   edi, cl 
+    lea   edi, [esi+edi*ebx]       ; base + (index * blocksize)
 
     ;test   numfree, numfree
     ;cmovnz [next], reg
@@ -140,9 +142,9 @@ POOL_NEXT             equ POOL_STRUCT_SIZE - 4
     ;mov   [base+numInit], 
 
     ;mov    reg, [base+nextFreeBlocks]
-    ;mov    reg, [base+numFree]
-    ;test   reg, reg 
-    ;cmovz  eax, nextFreeBlocks
+    mov    edx, [esi+pool_numFreeBlocks]
+    cmp    edx, eax 
+    cmovz  eax, nextFreeBlocks
     ;mov    reg2, reg1                  ; copy numFreeBlocks
     ;sub    reg2, 1
     ;mov    reg3, dword [next]
@@ -169,12 +171,12 @@ POOL_NEXT             equ POOL_STRUCT_SIZE - 4
 @mem_freeu@8:
     call   @next_pow2@4
     lzcnt  ecx, eax
-    mov    [ebp+ecx*4]
+    mov    eax, [ebp+ecx*4]
 
 
 ; free memory of aligned size
 ; void mem_freea(int size, void *ptr);
 @mem_freea@8:
     lzcnt  ecx, ecx
-    mov    [ebp+ecx*4]
+    mov    eax, [ebp+ecx*4]
 
